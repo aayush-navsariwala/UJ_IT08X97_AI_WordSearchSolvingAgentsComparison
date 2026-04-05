@@ -9,7 +9,6 @@ class SearchState:
     col: int
     word_index: int
     path: List[Position] = field(default_factory=list)
-    visited: Set[Position] = field(default_factory=set)
-    
+
     def current_position(self) -> Position:
         return (self.row, self.col)

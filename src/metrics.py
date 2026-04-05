@@ -11,6 +11,7 @@ class SearchMetrics:
     max_frontier_size: int = 0
     success: bool = False
     path_length: int = 0
+    MAX_NODE_EXPANSIONS = 200000
     
     def start_timer(self):
         self._start = time.perf_counter()
