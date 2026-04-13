@@ -11,6 +11,7 @@ class SearchMetrics:
     max_frontier_size: int = 0
     success: bool = False
     path_length: int = 0
+    terminated_early: bool = False
     
     def start_timer(self):
         self._start = time.perf_counter()
