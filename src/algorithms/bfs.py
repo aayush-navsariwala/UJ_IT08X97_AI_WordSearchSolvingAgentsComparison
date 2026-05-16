@@ -1,11 +1,13 @@
 from collections import deque
-from typing import List, Tuple, Optional, Set
+from typing import List, Tuple, Optional
 
+from config import MAX_NODE_EXPANSIONS
 from src.algorithms.base import BaseSearchAlgorithm
 from src.grid import WordSearchGrid
 from src.metrics import SearchMetrics
 
 Position = Tuple[int, int]
+
 
 class BreadthFirstSearch(BaseSearchAlgorithm):
     def __init__(self):
@@ -25,6 +27,10 @@ class BreadthFirstSearch(BaseSearchAlgorithm):
         metrics.max_frontier_size = len(queue)
 
         while queue:
+            if metrics.nodes_expanded >= MAX_NODE_EXPANSIONS:
+                metrics.terminated_early = True
+                break
+
             metrics.max_frontier_size = max(metrics.max_frontier_size, len(queue))
             row, col, index, path = queue.popleft()
             metrics.nodes_expanded += 1
