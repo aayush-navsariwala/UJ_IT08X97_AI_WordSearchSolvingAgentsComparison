@@ -9,6 +9,8 @@ from src.grid import WordSearchGrid
 from src.benchmark import BenchmarkRunner
 from src.visualiser import ResultVisualiser
 from src.manual_input import load_grid_from_lines
+from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+from matplotlib.figure import Figure
 
 
 class WordSearchAIApp:
@@ -158,6 +160,30 @@ class WordSearchAIApp:
 
         self.results_table.pack(fill="both", expand=True, pady=5)
         self.results_table.bind("<<TreeviewSelect>>", self.on_result_selected)
+        
+        tk.Label(right_frame, text="Graph Preview", font=("Arial", 12, "bold")).pack(anchor="w", pady=(10, 0))
+
+        self.graph_metric = tk.StringVar(value="execution_time_ms")
+
+        graph_options = ttk.Combobox(
+            right_frame,
+            textvariable=self.graph_metric,
+            values=[
+                "execution_time_ms",
+                "nodes_expanded",
+                "states_generated",
+                "max_frontier_size"
+            ],
+            state="readonly",
+            width=30
+        )
+        graph_options.pack(anchor="w", pady=5)
+        graph_options.bind("<<ComboboxSelected>>", self.update_graph_preview)
+
+        self.graph_frame = tk.Frame(right_frame)
+        self.graph_frame.pack(fill="both", expand=True, pady=5)
+
+        self.graph_canvas = None
 
         graph_button_frame = tk.Frame(right_frame)
         graph_button_frame.pack(pady=10)
@@ -237,6 +263,7 @@ class WordSearchAIApp:
             visualiser.plot_metric_by_algorithm(df, "max_frontier_size", "gui_frontier_comparison.png")
 
             self.populate_table(df)
+            self.update_graph_preview()
 
             self.status_label.config(
                 text="Benchmark complete. Select a result to view its path.",
@@ -413,6 +440,38 @@ class WordSearchAIApp:
             os.startfile(results_path)
         except AttributeError:
             messagebox.showinfo("Results Folder", results_path)
+            
+    def update_graph_preview(self, event=None):
+        if self.latest_df is None:
+            return
+
+        metric = self.graph_metric.get()
+
+        for widget in self.graph_frame.winfo_children():
+            widget.destroy()
+
+        grouped = (
+            self.latest_df
+            .groupby("algorithm")[metric]
+            .mean()
+            .sort_values()
+        )
+
+        fig = Figure(figsize=(5.8, 3.2), dpi=100)
+        ax = fig.add_subplot(111)
+
+        grouped.plot(kind="bar", ax=ax)
+
+        ax.set_title(f"Average {metric.replace('_', ' ').title()}")
+        ax.set_xlabel("Algorithm")
+        ax.set_ylabel(metric.replace("_", " ").title())
+        ax.tick_params(axis="x", rotation=35)
+
+        fig.tight_layout()
+
+        self.graph_canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
+        self.graph_canvas.draw()
+        self.graph_canvas.get_tk_widget().pack(fill="both", expand=True)
 
 
 def main():
