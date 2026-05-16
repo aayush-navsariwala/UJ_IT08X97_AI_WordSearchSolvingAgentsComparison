@@ -3,18 +3,21 @@ import os
 from src.grid import WordSearchGrid
 from src.benchmark import BenchmarkRunner
 from src.visualiser import ResultVisualiser
+from src.manual_input import load_grid_from_lines
+
 
 def main():
-    grid_data = [
-        ["C", "A", "T", "D", "O"],
-        ["X", "Z", "O", "G", "G"],
-        ["Y", "D", "O", "G", "P"],
-        ["B", "I", "R", "D", "Q"],
-        ["F", "I", "S", "H", "R"]
+    lines = [
+        "CATDO",
+        "XZOGG",
+        "YDOGP",
+        "BIRDQ",
+        "FISHR"
     ]
 
-    words = ["CAT", "DOG", "BIRD", "FISH"]
+    words = ["CAT", "DOG", "BIRD", "FISH", "GOOD"]
 
+    grid_data = load_grid_from_lines(lines)
     grid = WordSearchGrid(grid_data)
     grid.display()
 
@@ -28,6 +31,7 @@ def main():
     visualiser.plot_metric_by_algorithm(df, "execution_time_ms", "time_comparison.png")
     visualiser.plot_metric_by_algorithm(df, "nodes_expanded", "nodes_comparison.png")
     visualiser.plot_metric_by_algorithm(df, "max_frontier_size", "frontier_comparison.png")
+    visualiser.plot_metric_by_algorithm(df, "states_generated", "generated_states_comparison.png")
 
     print("\nResults saved to results/benchmark_results.csv")
 
