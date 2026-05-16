@@ -9,7 +9,6 @@ from src.algorithms.greedy import GreedyBestFirstSearch
 from src.algorithms.astar import AStarSearch
 from src.algorithms.beam import BeamSearch
 
-
 class BenchmarkRunner:
     def __init__(self):
         self.algorithms = [
@@ -37,7 +36,8 @@ class BenchmarkRunner:
                     "states_generated": metrics.states_generated,
                     "max_frontier_size": metrics.max_frontier_size,
                     "path_length": metrics.path_length,
-                    "terminated_early": metrics.terminated_early
+                    "terminated_early": metrics.terminated_early,
+                    "path": path if path else []
                 })
 
                 print(
@@ -45,7 +45,8 @@ class BenchmarkRunner:
                     f"{word} | "
                     f"success={metrics.success} | "
                     f"time={metrics.execution_time_ms:.3f}ms | "
-                    f"nodes={metrics.nodes_expanded}"
+                    f"nodes={metrics.nodes_expanded} | "
+                    f"path={path}"
                 )
 
         return pd.DataFrame(rows)
