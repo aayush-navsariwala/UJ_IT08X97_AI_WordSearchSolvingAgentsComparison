@@ -3,23 +3,22 @@ import os
 from src.grid import WordSearchGrid
 from src.benchmark import BenchmarkRunner
 from src.visualiser import ResultVisualiser
-from src.manual_input import load_grid_from_lines
+from src.puzzle_generator import PuzzleGenerator
 
 
 def main():
-    lines = [
-        "CATDO",
-        "XZOGG",
-        "YDOGP",
-        "BIRDQ",
-        "FISHR"
-    ]
+    words = ["CAT", "DOG", "BIRD", "FISH", "HOUSE"]
 
-    words = ["CAT", "DOG", "BIRD", "FISH", "GOOD"]
+    generator = PuzzleGenerator(rows=10, cols=10, allow_diagonal=True)
+    grid_data, placements = generator.generate(words)
 
-    grid_data = load_grid_from_lines(lines)
+    print("Generated Word Search:")
     grid = WordSearchGrid(grid_data)
     grid.display()
+
+    print("\nWord Placements:")
+    for word, path in placements.items():
+        print(f"{word}: {path}")
 
     benchmark = BenchmarkRunner()
     df = benchmark.run(grid, words)
