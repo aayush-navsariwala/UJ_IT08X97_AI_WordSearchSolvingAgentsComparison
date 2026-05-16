@@ -11,7 +11,7 @@ from src.visualiser import ResultVisualiser
 from src.manual_input import load_grid_from_lines
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
-
+from src.image_pipeline import ImageGridExtractor
 
 class WordSearchAIApp:
     def __init__(self, root):
@@ -65,6 +65,23 @@ class WordSearchAIApp:
         self.words_entry = tk.Entry(left_frame, width=40)
         self.words_entry.pack(pady=5)
         self.words_entry.insert(0, "CAT, DOG, BIRD, FISH, GOOD")
+        
+        tk.Label(left_frame, text="Image Grid Size", font=("Arial", 12, "bold")).pack(anchor="w", pady=(10, 0))
+
+        size_frame = tk.Frame(left_frame)
+        size_frame.pack(anchor="w", pady=5)
+
+        tk.Label(size_frame, text="Rows:").grid(row=0, column=0, padx=3)
+
+        self.rows_entry = tk.Entry(size_frame, width=6)
+        self.rows_entry.grid(row=0, column=1, padx=3)
+        self.rows_entry.insert(0, "5")
+
+        tk.Label(size_frame, text="Columns:").grid(row=0, column=2, padx=3)
+
+        self.cols_entry = tk.Entry(size_frame, width=6)
+        self.cols_entry.grid(row=0, column=3, padx=3)
+        self.cols_entry.insert(0, "5")
 
         button_frame = tk.Frame(left_frame)
         button_frame.pack(pady=15)
@@ -394,17 +411,44 @@ class WordSearchAIApp:
             ]
         )
 
-        if self.image_path:
-            messagebox.showinfo(
-                "Image Selected",
-                "Image upload has been added, but OCR extraction is not connected yet.\n\n"
-                f"Selected file:\n{self.image_path}"
-            )
+        if not self.image_path:
+            return
+
+        try:
+            rows = int(self.rows_entry.get().strip())
+            cols = int(self.cols_entry.get().strip())
+
+            if rows <= 0 or cols <= 0:
+                raise ValueError("Rows and columns must be positive numbers.")
+
+            self.status_label.config(text="Extracting grid from image...", fg="orange")
+            self.root.update_idletasks()
+
+            extractor = ImageGridExtractor(rows=rows, cols=cols)
+            extracted_grid = extractor.extract_grid(self.image_path)
+
+            grid_text = "\n".join("".join(row) for row in extracted_grid)
+
+            self.grid_text.delete("1.0", tk.END)
+            self.grid_text.insert("1.0", grid_text)
+
+            self.current_grid_data = extracted_grid
+            self.render_grid(extracted_grid)
 
             self.status_label.config(
-                text="Image selected. OCR extraction not implemented yet.",
+                text="Image extracted. Please check and correct any '?' characters.",
                 fg="blue"
             )
+
+            messagebox.showinfo(
+                "Grid Extracted",
+                "The image has been converted into a grid.\n\n"
+                "Please review the grid before running the benchmark."
+            )
+
+        except Exception as e:
+            self.status_label.config(text="Image extraction failed.", fg="red")
+            messagebox.showerror("Image Extraction Error", str(e))
 
     def clear_results(self):
         for item in self.results_table.get_children():
