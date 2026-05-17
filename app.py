@@ -13,6 +13,7 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from src.image_pipeline import ImageGridExtractor
 from src.experiment_manager import ExperimentManager
+from src.report_generator import ReportGenerator
 
 class WordSearchAIApp:
     def __init__(self, root):
@@ -213,6 +214,13 @@ class WordSearchAIApp:
             command=self.open_results_folder,
             width=22
         ).grid(row=0, column=0, padx=5)
+        
+        tk.Button(
+            graph_button_frame,
+            text="Generate Report",
+            command=self.generate_report,
+            width=22
+        ).grid(row=0, column=1, padx=5)
 
     def get_grid_input(self):
         raw_grid = self.grid_text.get("1.0", tk.END).strip()
@@ -558,6 +566,38 @@ class WordSearchAIApp:
         self.graph_canvas = FigureCanvasTkAgg(fig, master=self.graph_frame)
         self.graph_canvas.draw()
         self.graph_canvas.get_tk_widget().pack(fill="both", expand=True)
+        
+    def generate_report(self):
+        if self.latest_df is None:
+            messagebox.showwarning("No Results", "Run a benchmark before generating a report.")
+            return
+
+        if not self.current_experiment_dir:
+            messagebox.showwarning("No Experiment", "No experiment folder found.")
+            return
+
+        try:
+            words = self.get_words_input()
+
+            report_generator = ReportGenerator(self.current_experiment_dir)
+            report_path = report_generator.generate_txt_report(
+                self.latest_df,
+                self.current_grid_data,
+                words
+            )
+
+            messagebox.showinfo(
+                "Report Generated",
+                f"Report generated successfully:\n\n{report_path}"
+            )
+
+            self.status_label.config(
+                text=f"Report generated: {report_path}",
+                fg="green"
+            )
+
+        except Exception as e:
+            messagebox.showerror("Report Error", str(e))
 
 
 def main():
