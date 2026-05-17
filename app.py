@@ -137,7 +137,26 @@ class WordSearchAIApp:
 
         self.render_grid_from_input()
 
-        tk.Label(right_frame, text="Benchmark Results", font=("Arial", 12, "bold")).pack(anchor="w")
+        results_pane = tk.PanedWindow(
+            right_frame,
+            orient=tk.VERTICAL,
+            sashrelief=tk.RAISED,
+            sashwidth=6
+        )
+
+        results_pane.pack(fill="both", expand=True)
+
+        table_container = tk.Frame(results_pane)
+        graph_container = tk.Frame(results_pane)
+
+        results_pane.add(table_container, minsize=250)
+        results_pane.add(graph_container, minsize=350)
+
+        tk.Label(
+            table_container,
+            text="Benchmark Results",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w")
 
         columns = (
             "algorithm",
@@ -150,7 +169,12 @@ class WordSearchAIApp:
             "path_len"
         )
 
-        self.results_table = ttk.Treeview(right_frame, columns=columns, show="headings", height=25)
+        self.results_table = ttk.Treeview(
+            table_container,
+            columns=columns,
+            show="headings",
+            height=10
+        )
 
         headings = {
             "algorithm": "Algorithm",
@@ -178,15 +202,29 @@ class WordSearchAIApp:
             self.results_table.heading(col, text=headings[col])
             self.results_table.column(col, width=widths[col])
 
-        self.results_table.pack(fill="both", expand=True, pady=5)
+        table_scroll_y = ttk.Scrollbar(
+            table_container,
+            orient="vertical",
+            command=self.results_table.yview
+        )
+
+        self.results_table.configure(yscrollcommand=table_scroll_y.set)
+
+        self.results_table.pack(side="left", fill="both", expand=True, pady=5)
+        table_scroll_y.pack(side="right", fill="y")
+        
         self.results_table.bind("<<TreeviewSelect>>", self.on_result_selected)
         
-        tk.Label(right_frame, text="Graph Preview", font=("Arial", 12, "bold")).pack(anchor="w", pady=(10, 0))
+        tk.Label(
+            graph_container,
+            text="Graph Preview",
+            font=("Arial", 12, "bold")
+        ).pack(anchor="w", pady=(10, 0))
 
         self.graph_metric = tk.StringVar(value="execution_time_ms")
 
         graph_options = ttk.Combobox(
-            right_frame,
+            graph_container,
             textvariable=self.graph_metric,
             values=[
                 "execution_time_ms",
@@ -200,7 +238,7 @@ class WordSearchAIApp:
         graph_options.pack(anchor="w", pady=5)
         graph_options.bind("<<ComboboxSelected>>", self.update_graph_preview)
 
-        self.graph_frame = tk.Frame(right_frame)
+        self.graph_frame = tk.Frame(graph_container)
         self.graph_frame.pack(fill="both", expand=True, pady=5)
 
         self.graph_canvas = None
@@ -551,7 +589,7 @@ class WordSearchAIApp:
             .sort_values()
         )
 
-        fig = Figure(figsize=(5.8, 3.2), dpi=100)
+        fig = Figure(figsize=(8.5, 5.2), dpi=100)
         ax = fig.add_subplot(111)
 
         grouped.plot(kind="bar", ax=ax)
