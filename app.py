@@ -12,6 +12,7 @@ from src.manual_input import load_grid_from_lines
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 from src.image_pipeline import ImageGridExtractor
+from src.experiment_manager import ExperimentManager
 
 class WordSearchAIApp:
     def __init__(self, root):
@@ -23,6 +24,7 @@ class WordSearchAIApp:
         self.latest_df = None
         self.current_grid_data = None
         self.grid_labels = []
+        self.current_experiment_dir = None
 
         self.create_widgets()
 
@@ -256,8 +258,14 @@ class WordSearchAIApp:
             self.status_label.config(text="Running benchmark...", fg="orange")
             self.root.update_idletasks()
 
+            experiment = ExperimentManager()
+
             self.current_grid_data = self.get_grid_input()
             words = self.get_words_input()
+
+            experiment.save_uploaded_image(self.image_path)
+            experiment.save_grid(self.current_grid_data, "corrected_grid.txt")
+            experiment.save_words(words)
 
             self.render_grid(self.current_grid_data)
 
@@ -267,24 +275,55 @@ class WordSearchAIApp:
             df = benchmark.run(grid, words)
             self.latest_df = df
 
-            os.makedirs("results", exist_ok=True)
-
             export_df = df.copy()
             export_df["path"] = export_df["path"].apply(lambda p: str(p))
-            export_df.to_csv("results/gui_benchmark_results.csv", index=False)
 
-            visualiser = ResultVisualiser()
-            visualiser.plot_metric_by_algorithm(df, "execution_time_ms", "gui_time_comparison.png")
-            visualiser.plot_metric_by_algorithm(df, "nodes_expanded", "gui_nodes_comparison.png")
-            visualiser.plot_metric_by_algorithm(df, "states_generated", "gui_states_comparison.png")
-            visualiser.plot_metric_by_algorithm(df, "max_frontier_size", "gui_frontier_comparison.png")
+            csv_path = os.path.join(experiment.experiment_dir, "benchmark_results.csv")
+            export_df.to_csv(csv_path, index=False)
+
+            visualiser = ResultVisualiser(output_dir=experiment.graphs_dir)
+            visualiser.plot_metric_by_algorithm(df, "execution_time_ms", "time_comparison.png")
+            visualiser.plot_metric_by_algorithm(df, "nodes_expanded", "nodes_comparison.png")
+            visualiser.plot_metric_by_algorithm(df, "states_generated", "states_comparison.png")
+            visualiser.plot_metric_by_algorithm(df, "max_frontier_size", "frontier_comparison.png")
+
+            summary = (
+                "AI Word Search Algorithm Comparison Experiment\n\n"
+                f"Experiment folder: {experiment.experiment_dir}\n"
+                f"Rows: {len(self.current_grid_data)}\n"
+                f"Columns: {len(self.current_grid_data[0])}\n"
+                f"Target words: {', '.join(words)}\n\n"
+                "Algorithms compared:\n"
+                "- DFS\n"
+                "- BFS\n"
+                "- IDDFS\n"
+                "- Greedy Best-First Search\n"
+                "- A*\n"
+                "- Beam Search\n\n"
+                "Metrics recorded:\n"
+                "- Execution time\n"
+                "- Nodes expanded\n"
+                "- States generated\n"
+                "- Maximum frontier size\n"
+                "- Success status\n"
+                "- Path length\n"
+            )
+
+            experiment.save_summary(summary)
 
             self.populate_table(df)
             self.update_graph_preview()
 
+            self.current_experiment_dir = experiment.experiment_dir
+
             self.status_label.config(
-                text="Benchmark complete. Select a result to view its path.",
+                text=f"Benchmark complete. Saved to {experiment.experiment_dir}",
                 fg="green"
+            )
+
+            messagebox.showinfo(
+                "Experiment Saved",
+                f"Experiment saved successfully:\n\n{experiment.experiment_dir}"
             )
 
         except Exception as e:
@@ -475,7 +514,10 @@ class WordSearchAIApp:
         messagebox.showinfo("Saved", "Current grid and word list saved to results/current_input.txt")
 
     def open_results_folder(self):
-        results_path = os.path.abspath("results")
+        if hasattr(self, "current_experiment_dir") and self.current_experiment_dir:
+            results_path = os.path.abspath(self.current_experiment_dir)
+        else:
+            results_path = os.path.abspath("results")
 
         if not os.path.exists(results_path):
             os.makedirs(results_path)

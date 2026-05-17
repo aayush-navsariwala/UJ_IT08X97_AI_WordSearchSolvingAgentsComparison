@@ -1,0 +1,22 @@
+AI Word Search Algorithm Comparison Experiment
+
+Experiment folder: results/experiments\experiment_2026-05-17_14-21-03
+Rows: 5
+Columns: 5
+Target words: CAT, DOG, BIRD, FISH, GOOD
+
+Algorithms compared:
+- DFS
+- BFS
+- IDDFS
+- Greedy Best-First Search
+- A*
+- Beam Search
+
+Metrics recorded:
+- Execution time
+- Nodes expanded
+- States generated
+- Maximum frontier size
+- Success status
+- Path length
