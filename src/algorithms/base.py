@@ -9,7 +9,8 @@ Position = Tuple[int, int]
 class BaseSearchAlgorithm(ABC):
     def __init__(self, name: str):
         self.name = name
-        
+    
+    # Force all algorithms to implement search method  
     @abstractmethod
     def search(self, grid: WordSearchGrid, word: str) -> tuple[Optional[List[Position]], SearchMetrics]:
         pass
