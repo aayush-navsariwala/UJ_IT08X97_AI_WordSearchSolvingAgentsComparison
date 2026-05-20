@@ -9,8 +9,10 @@ from src.algorithms.greedy import GreedyBestFirstSearch
 from src.algorithms.astar import AStarSearch
 from src.algorithms.beam import BeamSearch
 
+
 class BenchmarkRunner:
     def __init__(self):
+        # Store algorithms that will be compared
         self.algorithms = [
             DepthFirstSearch(),
             BreadthFirstSearch(),
@@ -21,12 +23,16 @@ class BenchmarkRunner:
         ]
 
     def run(self, grid: WordSearchGrid, words: List[str]) -> pd.DataFrame:
+        # Store every algorithm result as table row
         rows = []
 
+        # Run algorithm against all target words
         for word in words:
             for algorithm in self.algorithms:
+                # Execute current algorithm and collect metrics
                 path, metrics = algorithm.search(grid, word)
 
+                # Add result to benchmark dataset
                 rows.append({
                     "algorithm": metrics.algorithm_name,
                     "word": metrics.word,
@@ -40,6 +46,7 @@ class BenchmarkRunner:
                     "path": path if path else []
                 })
 
+                # Print summary for debugging
                 print(
                     f"{metrics.algorithm_name} | "
                     f"{word} | "
@@ -49,4 +56,5 @@ class BenchmarkRunner:
                     f"path={path}"
                 )
 
+        # Return benchmark results as dataframe
         return pd.DataFrame(rows)
