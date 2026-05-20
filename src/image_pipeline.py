@@ -40,65 +40,41 @@ class ImageGridExtractor:
         return threshold
     
     def detect_grid_size(self, processed_image) -> Tuple[int, int]:
-        horizontal_kernel = cv2.getStructuringElement(
-            cv2.MORPH_RECT,
-            (processed_image.shape[1] // 20, 1)
-        )
+        height, width = processed_image.shape[:2]
 
-        vertical_kernel = cv2.getStructuringElement(
-            cv2.MORPH_RECT,
-            (1, processed_image.shape[0] // 20)
-        )
+        horizontal_projection = processed_image.sum(axis=1)
+        vertical_projection = processed_image.sum(axis=0)
 
-        horizontal_lines = cv2.morphologyEx(
-            processed_image,
-            cv2.MORPH_OPEN,
-            horizontal_kernel,
-            iterations=2
-        )
+        def count_gaps(projection, min_gap_size=5):
+            threshold = projection.max() * 0.15
+            empty_regions = []
+            in_gap = False
+            start = 0
 
-        vertical_lines = cv2.morphologyEx(
-            processed_image,
-            cv2.MORPH_OPEN,
-            vertical_kernel,
-            iterations=2
-        )
+            for i, value in enumerate(projection):
+                if value < threshold and not in_gap:
+                    in_gap = True
+                    start = i
+                elif value >= threshold and in_gap:
+                    in_gap = False
+                    if i - start >= min_gap_size:
+                        empty_regions.append((start, i))
 
-        horizontal_contours, _ = cv2.findContours(
-            horizontal_lines,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE
-        )
+            if in_gap:
+                empty_regions.append((start, len(projection)))
 
-        vertical_contours, _ = cv2.findContours(
-            vertical_lines,
-            cv2.RETR_EXTERNAL,
-            cv2.CHAIN_APPROX_SIMPLE
-        )
+            return len(empty_regions)
 
-        horizontal_positions = []
-        vertical_positions = []
+        row_gaps = count_gaps(horizontal_projection)
+        col_gaps = count_gaps(vertical_projection)
 
-        for contour in horizontal_contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            if w > processed_image.shape[1] * 0.4:
-                horizontal_positions.append(y)
+        estimated_rows = max(1, row_gaps + 1)
+        estimated_cols = max(1, col_gaps + 1)
 
-        for contour in vertical_contours:
-            x, y, w, h = cv2.boundingRect(contour)
-            if h > processed_image.shape[0] * 0.4:
-                vertical_positions.append(x)
+        if 2 <= estimated_rows <= 30 and 2 <= estimated_cols <= 30:
+            return estimated_rows, estimated_cols
 
-        horizontal_positions = self.merge_close_positions(sorted(horizontal_positions))
-        vertical_positions = self.merge_close_positions(sorted(vertical_positions))
-
-        detected_rows = max(1, len(horizontal_positions) - 1)
-        detected_cols = max(1, len(vertical_positions) - 1)
-
-        if detected_rows < 2 or detected_cols < 2:
-            return self.rows, self.cols
-
-        return detected_rows, detected_cols
+        return self.rows, self.cols
 
     def merge_close_positions(self, positions, tolerance: int = 10):
         if not positions:

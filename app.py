@@ -661,6 +661,14 @@ class WordSearchAIApp:
             )
 
             extracted_grid, detected_rows, detected_cols = extractor.extract_grid(self.image_path)
+            
+            if detected_rows == default_rows and detected_cols == default_cols:
+                messagebox.showwarning(
+                    "Grid Size Detection",
+                    "The app could not confidently detect a different grid size from the image.\n\n"
+                    "It used the current row and column values instead.\n"
+                    "If this is incorrect, enter the correct rows and columns manually, then upload again."
+    )
 
             self.rows_entry.delete(0, tk.END)
             self.rows_entry.insert(0, str(detected_rows))
