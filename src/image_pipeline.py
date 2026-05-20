@@ -200,20 +200,14 @@ class ImageGridExtractor:
 
         return grid
 
-    def extract_grid(self, image_path: str) -> Tuple[List[List[str]], int, int]:
-        # Load original image
+    def extract_grid(self, image_path: str):
         image = self.load_image(image_path)
-
-        # Preprocess image for OCR
         processed = self.preprocess_image(image)
-        
+
         if self.auto_detect:
             self.rows, self.cols = self.detect_grid_size(processed)
 
-        # Split processed image into grid cells
         cells = self.split_into_cells(processed)
-
-        # Recognise all letters from extracted cells
         grid = self.recognise_grid(cells)
 
-        return grid
+        return grid, self.rows, self.cols
