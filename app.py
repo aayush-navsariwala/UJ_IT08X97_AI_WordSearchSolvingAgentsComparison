@@ -636,7 +636,6 @@ class WordSearchAIApp:
             label.config(text=f"{self.current_grid_data[row][col]}\n{step}")
 
     def upload_image(self):
-        # Open image selection dialog
         self.image_path = filedialog.askopenfilename(
             title="Select Word Search Image",
             filetypes=[
@@ -645,57 +644,50 @@ class WordSearchAIApp:
             ]
         )
 
-        # Stop if no image was selected
         if not self.image_path:
             return
 
         try:
-            # Retrieve expected grid dimensions
-            rows = int(self.rows_entry.get().strip())
-            cols = int(self.cols_entry.get().strip())
+            default_rows = int(self.rows_entry.get().strip() or 5)
+            default_cols = int(self.cols_entry.get().strip() or 5)
 
-            # Validate grid dimensions
-            if rows <= 0 or cols <= 0:
-                raise ValueError("Rows and columns must be positive numbers.")
-
-            # Update application status
-            self.status_label.config(text="Extracting grid from image...", fg="orange")
+            self.status_label.config(text="Detecting grid size and extracting letters...", fg="orange")
             self.root.update_idletasks()
 
-            # Create image extraction pipeline
-            extractor = ImageGridExtractor(rows=rows, cols=cols)
+            extractor = ImageGridExtractor(
+                rows=default_rows,
+                cols=default_cols,
+                auto_detect=True
+            )
 
-            # Extract letter grid from image
-            extracted_grid = extractor.extract_grid(self.image_path)
+            extracted_grid, detected_rows, detected_cols = extractor.extract_grid(self.image_path)
 
-            # Convert extracted grid into text format
+            self.rows_entry.delete(0, tk.END)
+            self.rows_entry.insert(0, str(detected_rows))
+
+            self.cols_entry.delete(0, tk.END)
+            self.cols_entry.insert(0, str(detected_cols))
+
             grid_text = "\n".join("".join(row) for row in extracted_grid)
 
-            # Replace current grid input
             self.grid_text.delete("1.0", tk.END)
             self.grid_text.insert("1.0", grid_text)
 
-            # Store extracted grid
             self.current_grid_data = extracted_grid
-
-            # Render extracted grid visually
             self.render_grid(extracted_grid)
 
-            # Update application status
             self.status_label.config(
-                text="Image extracted. Please check and correct any '?' characters.",
+                text=f"Detected {detected_rows} rows x {detected_cols} columns. Please check OCR output.",
                 fg="blue"
             )
 
-            # Display extraction success message
             messagebox.showinfo(
                 "Grid Extracted",
-                "The image has been converted into a grid.\n\n"
-                "Please review the grid before running the benchmark."
+                f"Detected grid size: {detected_rows} rows x {detected_cols} columns.\n\n"
+                "Please review and correct any '?' characters before running the benchmark."
             )
 
         except Exception as e:
-            # Display extraction error information
             self.status_label.config(text="Image extraction failed.", fg="red")
             messagebox.showerror("Image Extraction Error", str(e))
 

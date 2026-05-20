@@ -1,15 +1,16 @@
 import cv2
 import pytesseract
-from typing import List
+from typing import List, Tuple
 
 # Set local tesseract executable path
 pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 class ImageGridExtractor:
-    def __init__(self, rows: int, cols: int):
-        # Store expected number of grid rows and columns
+    # Store default number of grid rows, columns and auto detect them
+    def __init__(self, rows: int = 5, cols: int = 5, auto_detect: bool = True):
         self.rows = rows
         self.cols = cols
+        self.auto_detect = auto_detect
 
     def load_image(self, image_path: str):
         # Load image from file path
@@ -18,7 +19,6 @@ class ImageGridExtractor:
         # Raise error if image cannot be loaded
         if image is None:
             raise ValueError("Could not load image.")
-
         return image
 
     def preprocess_image(self, image):
@@ -37,8 +37,80 @@ class ImageGridExtractor:
             31,
             10
         )
-
         return threshold
+    
+    def detect_grid_size(self, processed_image) -> Tuple[int, int]:
+        horizontal_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT,
+            (processed_image.shape[1] // 20, 1)
+        )
+
+        vertical_kernel = cv2.getStructuringElement(
+            cv2.MORPH_RECT,
+            (1, processed_image.shape[0] // 20)
+        )
+
+        horizontal_lines = cv2.morphologyEx(
+            processed_image,
+            cv2.MORPH_OPEN,
+            horizontal_kernel,
+            iterations=2
+        )
+
+        vertical_lines = cv2.morphologyEx(
+            processed_image,
+            cv2.MORPH_OPEN,
+            vertical_kernel,
+            iterations=2
+        )
+
+        horizontal_contours, _ = cv2.findContours(
+            horizontal_lines,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        vertical_contours, _ = cv2.findContours(
+            vertical_lines,
+            cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE
+        )
+
+        horizontal_positions = []
+        vertical_positions = []
+
+        for contour in horizontal_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if w > processed_image.shape[1] * 0.4:
+                horizontal_positions.append(y)
+
+        for contour in vertical_contours:
+            x, y, w, h = cv2.boundingRect(contour)
+            if h > processed_image.shape[0] * 0.4:
+                vertical_positions.append(x)
+
+        horizontal_positions = self.merge_close_positions(sorted(horizontal_positions))
+        vertical_positions = self.merge_close_positions(sorted(vertical_positions))
+
+        detected_rows = max(1, len(horizontal_positions) - 1)
+        detected_cols = max(1, len(vertical_positions) - 1)
+
+        if detected_rows < 2 or detected_cols < 2:
+            return self.rows, self.cols
+
+        return detected_rows, detected_cols
+
+    def merge_close_positions(self, positions, tolerance: int = 10):
+        if not positions:
+            return []
+
+        merged = [positions[0]]
+
+        for pos in positions[1:]:
+            if abs(pos - merged[-1]) > tolerance:
+                merged.append(pos)
+
+        return merged
 
     def split_into_cells(self, image):
         # Get image dimensions
@@ -80,7 +152,6 @@ class ImageGridExtractor:
 
             # Add the completed row of cells
             cells.append(row_cells)
-
         return cells
 
     def recognise_letter(self, cell_image) -> str:
@@ -122,20 +193,22 @@ class ImageGridExtractor:
 
             # Recognise each cell as single letter
             for cell in row_cells:
-                letter = self.recognise_letter(cell)
-                row.append(letter)
+                row.append(self.recognise_letter(cell))
 
             # Add recognised row to grid
             grid.append(row)
 
         return grid
 
-    def extract_grid(self, image_path: str) -> List[List[str]]:
+    def extract_grid(self, image_path: str) -> Tuple[List[List[str]], int, int]:
         # Load original image
         image = self.load_image(image_path)
 
         # Preprocess image for OCR
         processed = self.preprocess_image(image)
+        
+        if self.auto_detect:
+            self.rows, self.cols = self.detect_grid_size(processed)
 
         # Split processed image into grid cells
         cells = self.split_into_cells(processed)
