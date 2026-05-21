@@ -1,0 +1,22 @@
+AI Word Search Algorithm Comparison Experiment
+
+Experiment folder: results/experiments\experiment_2026-05-21_12-10-20
+Rows: 6
+Columns: 6
+Target words: BOOT, COAT, SNOW, COLD, SKI, ICE
+
+Algorithms compared:
+- DFS
+- BFS
+- IDDFS
+- Greedy Best-First Search
+- A*
+- Beam Search
+
+Metrics recorded:
+- Execution time
+- Nodes expanded
+- States generated
+- Maximum frontier size
+- Success status
+- Path length
